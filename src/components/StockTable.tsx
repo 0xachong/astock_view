@@ -43,10 +43,10 @@ function formatVolume(vol: number): string {
 
 function getStockUrl(code: string, market: MarketType): string {
   if (market === 'hk') {
-    return `https://finance.sina.com.cn/stock/hkstock/${code}/detail.shtml`;
+    return `https://stock.finance.sina.com.cn/hkstock/quotes/${code}.html`;
   }
   if (market === 'us') {
-    return `https://finance.sina.com.cn/stock/usstock/${code}/detail.shtml`;
+    return `https://stock.finance.sina.com.cn/usstock/quotes/${code}.html`;
   }
   const prefix = code.startsWith('6') ? '1.' : '0.';
   return `https://quote.eastmoney.com/${prefix}${code}.html`;
