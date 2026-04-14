@@ -154,13 +154,9 @@ export async function fetchDailyReport(): Promise<DailyReport> {
   const limitUp = stocks.filter(s => s.changePercent >= 9.9).length;
   const limitDown = stocks.filter(s => s.changePercent <= -9.9).length;
 
-  const now = new Date();
-  const date = now.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
-  const time = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
   return {
-    date,
-    updateTime: time,
+    date: new Date().toISOString(),
+    updateTime: new Date().toISOString(),
     volumeSurge,
     newHigh,
     summary: { totalUp, totalDown, limitUp, limitDown },

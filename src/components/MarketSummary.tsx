@@ -15,12 +15,15 @@ export default function MarketSummary({ summary, date, updateTime }: MarketSumma
   const total = summary.totalUp + summary.totalDown;
   const upRatio = total > 0 ? (summary.totalUp / total * 100).toFixed(1) : '0';
 
+  const localDate = new Date(date).toLocaleDateString();
+  const localTime = new Date(updateTime).toLocaleTimeString();
+
   return (
     <div className="bg-gray-900/50 rounded-xl border border-gray-800 p-6">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-bold text-white">市场概况</h2>
         <div className="text-sm text-gray-500">
-          {date} {updateTime} 更新
+          {localDate} {localTime} 更新
         </div>
       </div>
 
