@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { fetchDailyReport } from '@/lib/eastmoney';
 
-export const revalidate = 300; // ISR: 5分钟更新一次
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+// 使用香港节点，确保能访问东方财富 API
+export const preferredRegion = 'hkg1';
 
 export async function GET() {
   try {
