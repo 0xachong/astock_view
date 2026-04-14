@@ -26,15 +26,21 @@ export interface StockWithTag extends StockItem {
 
 export type MarketTier = StockWithTag['tier'];
 
-export interface DailyReport {
-  date: string;
-  updateTime: string;
-  volumeSurge: StockWithTag[];   // 放量大涨
-  newHigh: StockWithTag[];       // 创新高
+export type MarketType = 'a' | 'hk' | 'us';
+
+export interface MarketReport {
+  volumeSurge: StockWithTag[];
+  newHigh: StockWithTag[];
   summary: {
     totalUp: number;
     totalDown: number;
     limitUp: number;
     limitDown: number;
   };
+}
+
+export interface DailyReport {
+  date: string;
+  updateTime: string;
+  markets: Record<MarketType, MarketReport>;
 }

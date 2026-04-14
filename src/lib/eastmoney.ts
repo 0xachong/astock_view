@@ -1,17 +1,13 @@
-import { StockItem, StockWithTag, DailyReport } from './types';
+import { StockItem, StockWithTag, MarketReport } from './types';
 
 const EASTMONEY_API = 'https://push2.eastmoney.com/api/qt/clist/get';
 
 // 东方财富字段映射
-// f2=最新价 f3=涨跌幅 f4=涨跌额 f5=成交量 f6=成交额 f7=振幅
-// f8=换手率 f9=市盈率 f10=量比 f12=代码 f14=名称 f15=最高 f16=最低
-// f17=开盘 f18=昨收 f20=总市值 f21=流通市值 f100=行业
 const FIELDS = 'f2,f3,f4,f5,f6,f7,f8,f9,f10,f12,f14,f15,f16,f17,f18,f20,f21,f100';
 
 async function fetchAllStocks(): Promise<StockItem[]> {
   const results: StockItem[] = [];
 
-  // 获取沪深A股 fs=m:0+t:6(深A) m:1+t:2(沪A)
   for (const fs of ['m:0+t:6,m:0+t:80', 'm:1+t:2,m:1+t:23']) {
     let page = 1;
     let hasMore = true;
@@ -36,7 +32,7 @@ async function fetchAllStocks(): Promise<StockItem[]> {
           'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
           'Referer': 'https://quote.eastmoney.com/',
         },
-        next: { revalidate: 300 }, // 5分钟缓存
+        next: { revalidate: 300 },
       });
 
       const data = await res.json();
@@ -57,7 +53,7 @@ async function fetchAllStocks(): Promise<StockItem[]> {
           volume: item.f5 ?? 0,
           volumeRatio: item.f10 ?? 0,
           turnoverRate: item.f8 ?? 0,
-          marketCap: item.f20 ? item.f20 / 1e8 : 0,  // 转为亿
+          marketCap: item.f20 ? item.f20 / 1e8 : 0,
           circulatingCap: item.f21 ? item.f21 / 1e8 : 0,
           amplitude: item.f7 ?? 0,
           high: item.f15 ?? 0,
@@ -81,15 +77,14 @@ async function fetchAllStocks(): Promise<StockItem[]> {
 }
 
 function classifyTier(marketCap: number): StockWithTag['tier'] {
-  if (marketCap >= 1000) return '超大盘';   // ≥1000亿
-  if (marketCap >= 300) return '大盘';      // 300-1000亿
-  if (marketCap >= 100) return '中盘';      // 100-300亿
-  if (marketCap >= 30) return '小盘';       // 30-100亿
-  return '微盘';                            // <30亿
+  if (marketCap >= 1000) return '超大盘';
+  if (marketCap >= 300) return '大盘';
+  if (marketCap >= 100) return '中盘';
+  if (marketCap >= 30) return '小盘';
+  return '微盘';
 }
 
 function filterVolumeSurge(stocks: StockItem[]): StockWithTag[] {
-  // 放量大涨: 涨幅≥5% 且 量比≥1.5
   return stocks
     .filter(s =>
       s.changePercent >= 5 &&
@@ -108,14 +103,12 @@ function filterVolumeSurge(stocks: StockItem[]): StockWithTag[] {
 }
 
 function filterNewHigh(stocks: StockItem[]): StockWithTag[] {
-  // 创新高近似: 当日最高价 = 最新价 且 涨幅 > 0（简化判断）
-  // 真正的新高需要历史数据，这里用当日强势突破近似
   return stocks
     .filter(s =>
       s.changePercent >= 3 &&
       s.high > 0 &&
       s.price > 0 &&
-      Math.abs(s.high - s.price) / s.price < 0.005 && // 价格接近当日最高
+      Math.abs(s.high - s.price) / s.price < 0.005 &&
       s.turnoverRate >= 2 &&
       !s.name.includes('ST') &&
       !s.name.includes('退')
@@ -143,22 +136,17 @@ function buildTags(s: StockItem): string[] {
   return tags;
 }
 
-export async function fetchDailyReport(): Promise<DailyReport> {
+export async function fetchAStockReport(): Promise<MarketReport> {
   const stocks = await fetchAllStocks();
 
-  const volumeSurge = filterVolumeSurge(stocks);
-  const newHigh = filterNewHigh(stocks);
-
-  const totalUp = stocks.filter(s => s.changePercent > 0).length;
-  const totalDown = stocks.filter(s => s.changePercent < 0).length;
-  const limitUp = stocks.filter(s => s.changePercent >= 9.9).length;
-  const limitDown = stocks.filter(s => s.changePercent <= -9.9).length;
-
   return {
-    date: new Date().toISOString(),
-    updateTime: new Date().toISOString(),
-    volumeSurge,
-    newHigh,
-    summary: { totalUp, totalDown, limitUp, limitDown },
+    volumeSurge: filterVolumeSurge(stocks),
+    newHigh: filterNewHigh(stocks),
+    summary: {
+      totalUp: stocks.filter(s => s.changePercent > 0).length,
+      totalDown: stocks.filter(s => s.changePercent < 0).length,
+      limitUp: stocks.filter(s => s.changePercent >= 9.9).length,
+      limitDown: stocks.filter(s => s.changePercent <= -9.9).length,
+    },
   };
 }

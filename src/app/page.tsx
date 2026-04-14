@@ -1,17 +1,29 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { DailyReport } from '@/lib/types';
+import { DailyReport, MarketType } from '@/lib/types';
 import MarketSummary from '@/components/MarketSummary';
 import StockTable from '@/components/StockTable';
 
-type TabKey = 'volumeSurge' | 'newHigh';
+type DataTab = 'volumeSurge' | 'newHigh';
+
+const MARKET_TABS: { key: MarketType; label: string; flag: string }[] = [
+  { key: 'a', label: 'A股', flag: '🇨🇳' },
+  { key: 'hk', label: '港股', flag: '🇭🇰' },
+  { key: 'us', label: '美股', flag: '🇺🇸' },
+];
+
+const DATA_TABS: { key: DataTab; label: string; icon: string }[] = [
+  { key: 'volumeSurge', label: '放量大涨', icon: '🔥' },
+  { key: 'newHigh', label: '创新高', icon: '📈' },
+];
 
 export default function Home() {
   const [report, setReport] = useState<DailyReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TabKey>('volumeSurge');
+  const [activeMarket, setActiveMarket] = useState<MarketType>('a');
+  const [activeDataTab, setActiveDataTab] = useState<DataTab>('volumeSurge');
 
   const fetchData = useCallback(async () => {
     try {
@@ -30,15 +42,11 @@ export default function Home() {
 
   useEffect(() => {
     fetchData();
-    // 每5分钟自动刷新
     const timer = setInterval(fetchData, 5 * 60 * 1000);
     return () => clearInterval(timer);
   }, [fetchData]);
 
-  const tabs: { key: TabKey; label: string; icon: string }[] = [
-    { key: 'volumeSurge', label: '放量大涨', icon: '🔥' },
-    { key: 'newHigh', label: '创新高', icon: '📈' },
-  ];
+  const currentMarket = report?.markets[activeMarket];
 
   return (
     <main className="min-h-screen bg-[#0a0e17] text-white">
@@ -47,11 +55,11 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center font-bold text-sm">
-              A
+              S
             </div>
             <div>
-              <h1 className="text-lg font-bold">A股每日热点监控</h1>
-              <p className="text-xs text-gray-500">放量大涨 · 创新高 · 按市值分梯队</p>
+              <h1 className="text-lg font-bold">每日热点监控</h1>
+              <p className="text-xs text-gray-500">A股 · 港股 · 美股 · 放量大涨 · 创新高</p>
             </div>
           </div>
 
@@ -104,46 +112,70 @@ export default function Home() {
         {/* Data loaded */}
         {report && (
           <>
-            <MarketSummary
-              summary={report.summary}
-              date={report.date}
-              updateTime={report.updateTime}
-            />
-
-            {/* Tabs */}
-            <div className="flex gap-2 border-b border-gray-800 pb-0">
-              {tabs.map(tab => (
+            {/* Market Tabs */}
+            <div className="flex gap-2">
+              {MARKET_TABS.map(tab => (
                 <button
                   key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
-                  className={`px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${
-                    activeTab === tab.key
-                      ? 'border-red-500 text-white'
-                      : 'border-transparent text-gray-500 hover:text-gray-300'
+                  onClick={() => setActiveMarket(tab.key)}
+                  className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                    activeMarket === tab.key
+                      ? 'bg-red-600 text-white shadow-lg shadow-red-600/20'
+                      : 'bg-gray-800/60 text-gray-400 hover:bg-gray-700/60 hover:text-gray-200'
                   }`}
                 >
-                  {tab.icon} {tab.label}
-                  <span className="ml-1.5 text-xs opacity-60">
-                    ({report[tab.key]?.length || 0})
-                  </span>
+                  {tab.flag} {tab.label}
                 </button>
               ))}
             </div>
 
-            {/* Content */}
-            {activeTab === 'volumeSurge' && (
-              <StockTable
-                stocks={report.volumeSurge}
-                title="放量大涨"
-                icon="🔥"
-              />
-            )}
-            {activeTab === 'newHigh' && (
-              <StockTable
-                stocks={report.newHigh}
-                title="创新高"
-                icon="📈"
-              />
+            {currentMarket && (
+              <>
+                <MarketSummary
+                  summary={currentMarket.summary}
+                  date={report.date}
+                  updateTime={report.updateTime}
+                  market={activeMarket}
+                />
+
+                {/* Data Tabs */}
+                <div className="flex gap-2 border-b border-gray-800 pb-0">
+                  {DATA_TABS.map(tab => (
+                    <button
+                      key={tab.key}
+                      onClick={() => setActiveDataTab(tab.key)}
+                      className={`px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${
+                        activeDataTab === tab.key
+                          ? 'border-red-500 text-white'
+                          : 'border-transparent text-gray-500 hover:text-gray-300'
+                      }`}
+                    >
+                      {tab.icon} {tab.label}
+                      <span className="ml-1.5 text-xs opacity-60">
+                        ({currentMarket[tab.key]?.length || 0})
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Content */}
+                {activeDataTab === 'volumeSurge' && (
+                  <StockTable
+                    stocks={currentMarket.volumeSurge}
+                    title="放量大涨"
+                    icon="🔥"
+                    market={activeMarket}
+                  />
+                )}
+                {activeDataTab === 'newHigh' && (
+                  <StockTable
+                    stocks={currentMarket.newHigh}
+                    title="创新高"
+                    icon="📈"
+                    market={activeMarket}
+                  />
+                )}
+              </>
             )}
           </>
         )}
@@ -151,7 +183,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="border-t border-gray-800 mt-12 py-6 text-center text-xs text-gray-600">
-        数据来源：东方财富 · 仅供参考，不构成投资建议 · 每5分钟自动刷新
+        数据来源：东方财富(A股) · 新浪财经(港股/美股) · 仅供参考，不构成投资建议 · 每5分钟自动刷新
       </footer>
     </main>
   );

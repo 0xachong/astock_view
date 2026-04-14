@@ -1,5 +1,7 @@
 'use client';
 
+import { MarketType } from '@/lib/types';
+
 interface MarketSummaryProps {
   summary: {
     totalUp: number;
@@ -9,11 +11,19 @@ interface MarketSummaryProps {
   };
   date: string;
   updateTime: string;
+  market: MarketType;
 }
 
-export default function MarketSummary({ summary, date, updateTime }: MarketSummaryProps) {
+const MARKET_LABELS: Record<MarketType, string> = {
+  a: 'A股市场概况',
+  hk: '港股市场概况',
+  us: '美股市场概况',
+};
+
+export default function MarketSummary({ summary, date, updateTime, market }: MarketSummaryProps) {
   const total = summary.totalUp + summary.totalDown;
   const upRatio = total > 0 ? (summary.totalUp / total * 100).toFixed(1) : '0';
+  const showLimits = market === 'a';
 
   const localDate = new Date(date).toLocaleDateString();
   const localTime = new Date(updateTime).toLocaleTimeString();
@@ -21,13 +31,13 @@ export default function MarketSummary({ summary, date, updateTime }: MarketSumma
   return (
     <div className="bg-gray-900/50 rounded-xl border border-gray-800 p-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold text-white">市场概况</h2>
+        <h2 className="text-lg font-bold text-white">{MARKET_LABELS[market]}</h2>
         <div className="text-sm text-gray-500">
           {localDate} {localTime} 更新
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className={`grid grid-cols-2 ${showLimits ? 'md:grid-cols-4' : 'md:grid-cols-2'} gap-4`}>
         <div className="bg-red-950/30 rounded-lg p-4 border border-red-900/30">
           <div className="text-sm text-gray-400 mb-1">上涨家数</div>
           <div className="text-2xl font-bold text-red-400">{summary.totalUp}</div>
@@ -39,15 +49,19 @@ export default function MarketSummary({ summary, date, updateTime }: MarketSumma
           <div className="text-2xl font-bold text-green-400">{summary.totalDown}</div>
         </div>
 
-        <div className="bg-red-950/40 rounded-lg p-4 border border-red-800/40">
-          <div className="text-sm text-gray-400 mb-1">涨停</div>
-          <div className="text-2xl font-bold text-red-500">{summary.limitUp}</div>
-        </div>
+        {showLimits && (
+          <>
+            <div className="bg-red-950/40 rounded-lg p-4 border border-red-800/40">
+              <div className="text-sm text-gray-400 mb-1">涨停</div>
+              <div className="text-2xl font-bold text-red-500">{summary.limitUp}</div>
+            </div>
 
-        <div className="bg-green-950/40 rounded-lg p-4 border border-green-800/40">
-          <div className="text-sm text-gray-400 mb-1">跌停</div>
-          <div className="text-2xl font-bold text-green-500">{summary.limitDown}</div>
-        </div>
+            <div className="bg-green-950/40 rounded-lg p-4 border border-green-800/40">
+              <div className="text-sm text-gray-400 mb-1">跌停</div>
+              <div className="text-2xl font-bold text-green-500">{summary.limitDown}</div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* 涨跌比例条 */}
